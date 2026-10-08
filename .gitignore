@@ -1,0 +1,41 @@
+# Maven build output
+target/
+
+# Runtime files
+*.log
+logs/
+*.pid
+hs_err_pid*.log
+replay_pid*.log
+*.hprof
+uploads/
+tmp/
+temp/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+src/main/resources/application-local.properties
+src/main/resources/application-*.local.properties
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+
+# Eclipse / Spring Tool Suite
+.classpath
+.project
+.settings/
+.factorypath
+.springBeans
+.sts4-cache/
+
+# VS Code
+.vscode/
+
+# Operating-system files
+.DS_Store
+Thumbs.db
+Desktop.ini
