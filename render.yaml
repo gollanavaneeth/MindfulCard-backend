@@ -7,7 +7,7 @@ services:
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /api/health
-    
+
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
@@ -22,7 +22,7 @@ services:
       - key: DB_PASSWORD
         sync: false
       - key: FRONTEND_URL
-        sync: https://mindful-card-frontend-gwbkcovxj-nava-c603.vercel.app
+        value: https://mindful-card-frontend-gwbkcovxj-nava-c603.vercel.app
       - key: JWT_SECRET
         generateValue: true
       - key: JAVA_TOOL_OPTIONS
