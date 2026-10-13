@@ -20,7 +20,7 @@ services:
       - key: DB_USERNAME
         value: avnadmin
       - key: DB_PASSWORD
-        sync:false
+        sync: false
       - key: FRONTEND_URL
         sync: mindful-card-frontend-gwbkcovxj-nava-c603.vercel.app
       - key: JWT_SECRET
