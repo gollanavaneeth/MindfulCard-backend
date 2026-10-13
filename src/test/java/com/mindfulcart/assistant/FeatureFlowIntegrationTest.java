@@ -61,6 +61,22 @@ class FeatureFlowIntegrationTest {
   }
 
   @Test
+  void vercelPreviewOriginsCanCallAuthenticationEndpoints() throws Exception {
+    String previewOrigin = "https://mindful-card-frontend-preview.vercel.app";
+    mvc.perform(
+            options("/api/auth/register")
+                .header("Origin", previewOrigin)
+                .header("Access-Control-Request-Method", "POST")
+                .header("Access-Control-Request-Headers", "content-type"))
+        .andExpect(status().isOk())
+        .andExpect(header().string("Access-Control-Allow-Origin", previewOrigin))
+        .andExpect(
+            header()
+                .string(
+                    "Access-Control-Allow-Methods", org.hamcrest.Matchers.containsString("POST")));
+  }
+
+  @Test
   void budgetGoalDecisionAndReassessmentWorkTogether() throws Exception {
     mvc.perform(
             put("/api/budget")

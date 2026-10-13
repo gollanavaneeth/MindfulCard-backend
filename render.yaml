@@ -23,6 +23,8 @@ services:
         sync: false
       - key: FRONTEND_URL
         value: https://mindful-card-frontend-gwbkcovxj-nava-c603.vercel.app
+      - key: FRONTEND_ORIGIN_PATTERNS
+        value: https://*.vercel.app
       - key: JWT_SECRET
         generateValue: true
       - key: JAVA_TOOL_OPTIONS

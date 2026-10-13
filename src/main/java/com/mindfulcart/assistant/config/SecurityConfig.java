@@ -24,6 +24,9 @@ public class SecurityConfig {
   @Value("${app.cors.allowed-origins}")
   private String allowedOrigins;
 
+  @Value("${app.cors.allowed-origin-patterns:}")
+  private String allowedOriginPatterns;
+
   @Bean
   SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     return http.csrf(csrf -> csrf.disable())
@@ -63,6 +66,12 @@ public class SecurityConfig {
             .filter(origin -> !origin.isBlank())
             .toList();
     configuration.setAllowedOrigins(origins);
+    List<String> originPatterns =
+        Arrays.stream(allowedOriginPatterns.split(","))
+            .map(String::trim)
+            .filter(pattern -> !pattern.isBlank())
+            .toList();
+    configuration.setAllowedOriginPatterns(originPatterns);
     configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
     configuration.setAllowedHeaders(List.of("*"));
     configuration.setMaxAge(3600L);

@@ -71,6 +71,7 @@ DB_NAME=nava
 DB_USERNAME=avnadmin
 DB_PASSWORD=<rotated-aiven-password>
 FRONTEND_URL=<deployed-frontend-origin>
+FRONTEND_ORIGIN_PATTERNS=https://*.vercel.app
 JWT_SECRET=<long-random-secret-at-least-32-characters>
 JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=75.0 -XX:+UseSerialGC -Dfile.encoding=UTF-8
 ```
@@ -109,6 +110,8 @@ REACT_APP_API_URL=https://your-backend.onrender.com/api
 Rebuild/redeploy the frontend after changing this value.
 
 Also ensure the backend's `FRONTEND_URL` exactly matches the frontend origin. A mismatch causes browser CORS errors even when the backend itself is healthy.
+
+`FRONTEND_ORIGIN_PATTERNS` allows Vercel preview and branch deployment hostnames to change without breaking browser authentication requests. Keep the pattern limited to HTTPS Vercel origins.
 
 ## Expected first deployment behavior
 
