@@ -31,10 +31,11 @@ class FeatureFlowIntegrationTest {
   @Autowired MockMvc mvc;
   @Autowired ObjectMapper json;
   String token;
+  String email;
 
   @BeforeAll
   void registerRealAccount() throws Exception {
-    String email = "integration-" + UUID.randomUUID() + "@example.com";
+    email = "integration-" + UUID.randomUUID() + "@example.com";
     String body =
         "{\"fullName\":\"Integration User\",\"email\":\""
             + email
@@ -74,6 +75,37 @@ class FeatureFlowIntegrationTest {
             header()
                 .string(
                     "Access-Control-Allow-Methods", org.hamcrest.Matchers.containsString("POST")));
+  }
+
+  @Test
+  void passwordResetChangesCredentialsAndAllowsLogin() throws Exception {
+    String forgotResponse =
+        mvc.perform(
+                post("/api/auth/forgot-password")
+                    .contentType("application/json")
+                    .content("{\"email\":\"" + email + "\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.developmentToken").isNotEmpty())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    String resetToken = json.readTree(forgotResponse).get("developmentToken").asText();
+    String newPassword = "Changed@456";
+
+    mvc.perform(
+            post("/api/auth/reset-password")
+                .contentType("application/json")
+                .content(
+                    "{\"token\":\"" + resetToken + "\",\"newPassword\":\"" + newPassword + "\"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.message").value("Password reset successfully"));
+
+    mvc.perform(
+            post("/api/auth/login")
+                .contentType("application/json")
+                .content("{\"email\":\"" + email + "\",\"password\":\"" + newPassword + "\"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.token").isNotEmpty());
   }
 
   @Test

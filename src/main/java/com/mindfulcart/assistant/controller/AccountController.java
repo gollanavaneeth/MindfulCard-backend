@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -44,6 +45,7 @@ public class AccountController {
   }
 
   @PostMapping("/api/auth/reset-password")
+  @Transactional
   Map<String, String> resetPassword(@Valid @RequestBody ResetRequest request) {
     AccountToken token = validateToken(request.token(), "RESET");
     token.getUser().setPassword(passwordEncoder.encode(request.newPassword()));
@@ -64,6 +66,7 @@ public class AccountController {
   }
 
   @PostMapping("/api/auth/verify-email")
+  @Transactional
   Map<String, String> verifyEmail(@RequestBody Map<String, String> request) {
     AccountToken token = validateToken(request.get("token"), "VERIFY");
     token.getUser().setEmailVerified(true);
