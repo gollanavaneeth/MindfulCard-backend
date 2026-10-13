@@ -82,6 +82,7 @@ The React development frontend is allowed from `http://localhost:3000` by defaul
 | `DB_USERNAME` | MySQL username | `root` |
 | `DB_PASSWORD` | MySQL password | `password` |
 | `JWT_SECRET` | Key used to sign JWTs | Development-only key |
+| `JWT_EXPIRATION_MS` | Login-token lifetime in milliseconds | `86400000` (24 hours) |
 | `FRONTEND_URL` | Allowed CORS origin | `http://localhost:3000` |
 | `FRONTEND_ORIGIN_PATTERNS` | Optional production preview-origin patterns | `https://*.vercel.app` in `prod` |
 | `OCR_LANGUAGE` | Tesseract OCR language | `eng` |
