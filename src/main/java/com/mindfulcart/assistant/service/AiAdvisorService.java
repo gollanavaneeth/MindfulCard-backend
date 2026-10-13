@@ -1,107 +1,43 @@
 package com.mindfulcart.assistant.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mindfulcart.assistant.model.Enums;
 import com.mindfulcart.assistant.model.Evaluation;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
-import org.springframework.beans.factory.annotation.Value;
+import java.util.Locale;
 import org.springframework.stereotype.Service;
 
 @Service
 public class AiAdvisorService {
-  private final ObjectMapper objectMapper;
-  private final HttpClient httpClient =
-      HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(8)).build();
-
-  @Value("${app.ai.api-key:}")
-  private String apiKey;
-
-  @Value("${app.ai.model:gpt-4.1-mini}")
-  private String model;
-
-  public AiAdvisorService(ObjectMapper objectMapper) {
-    this.objectMapper = objectMapper;
-  }
-
   public record Answer(String answer, String source) {}
 
   public Answer answer(String question, List<Evaluation> history) {
-    String context = retrieveContext(history);
-
-    if (apiKey != null && !apiKey.isBlank()) {
-      String generatedAnswer = generateWithAi(question, context);
-      if (generatedAnswer != null) {
-        return new Answer(generatedAnswer, "OPENAI");
-      }
-    }
-
-    return new Answer(createLocalAnswer(question, history), "PRIVATE_COACH");
+    List<Evaluation> relevantHistory = retrieveRelevantHistory(question, history);
+    return new Answer(createLocalAnswer(question, relevantHistory), "LOCAL_RULE_ENGINE");
   }
 
-  // RAG retrieval: select and format the latest user-specific purchase facts.
-  private String retrieveContext(List<Evaluation> history) {
-    return history.stream()
-        .limit(8)
-        .map(
-            evaluation ->
-                evaluation.getProductName()
-                    + ": score "
-                    + evaluation.getImpulseScore()
-                    + ", risk "
-                    + evaluation.getRiskLevel()
-                    + ", decision "
-                    + (evaluation.getDecision() == null ? "PENDING" : evaluation.getDecision()))
-        .collect(Collectors.joining("\n"));
+  // Local retrieval: prioritize recent records that share words with the question.
+  private List<Evaluation> retrieveRelevantHistory(
+      String question, List<Evaluation> completeHistory) {
+    List<Evaluation> recentHistory = completeHistory.stream().limit(8).toList();
+    List<String> questionWords =
+        Arrays.stream(question.toLowerCase(Locale.ROOT).split("[^a-z0-9]+"))
+            .filter(word -> word.length() >= 4)
+            .toList();
+    List<Evaluation> matches =
+        recentHistory.stream()
+            .filter(
+                evaluation -> {
+                  String searchableText =
+                      (evaluation.getProductName() + " " + evaluation.getCategory())
+                          .toLowerCase(Locale.ROOT);
+                  return questionWords.stream().anyMatch(searchableText::contains);
+                })
+            .toList();
+    return matches.isEmpty() ? recentHistory : matches;
   }
 
-  // RAG augmentation and generation: add retrieved context to the AI prompt.
-  private String generateWithAi(String question, String context) {
-    try {
-      var requestBody = objectMapper.createObjectNode();
-      requestBody.put("model", model);
-      requestBody.put(
-          "instructions",
-          "You are a supportive anti-impulse shopping coach. Give concise, practical, "
-              + "non-judgmental guidance. Do not give financial guarantees. Use the supplied "
-              + "purchase history only. Never encourage spending. Reply in at most 120 words.");
-      requestBody.put("input", "User question: " + question + "\nRecent history:\n" + context);
-      requestBody.put("max_output_tokens", 220);
-
-      HttpRequest request =
-          HttpRequest.newBuilder(URI.create("https://api.openai.com/v1/responses"))
-              .timeout(Duration.ofSeconds(20))
-              .header("Authorization", "Bearer " + apiKey)
-              .header("Content-Type", "application/json")
-              .POST(
-                  HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(requestBody)))
-              .build();
-      HttpResponse<String> response =
-          httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-
-      if (response.statusCode() / 100 != 2) {
-        return null;
-      }
-
-      JsonNode responseBody = objectMapper.readTree(response.body());
-      for (JsonNode output : responseBody.path("output")) {
-        for (JsonNode content : output.path("content")) {
-          if (content.hasNonNull("text")) {
-            return content.get("text").asText();
-          }
-        }
-      }
-    } catch (Exception ignored) {
-      // Keep the coach available with a deterministic local response.
-    }
-    return null;
-  }
-
+  // Local generation: deterministic templates use only retrieved user data.
   private String createLocalAnswer(String question, List<Evaluation> history) {
     if (history.isEmpty()) {
       return "Start with one purchase evaluation. Describe what you want, whether it was "
@@ -109,30 +45,45 @@ public class AiAdvisorService {
           + "clearer choice.";
     }
 
+    String normalizedQuestion = question.toLowerCase(Locale.ROOT);
     double averageScore =
         history.stream().mapToInt(Evaluation::getImpulseScore).average().orElse(0);
     long advertisementTriggers =
         history.stream().filter(Evaluation::isAdvertisementTriggered).count();
     long urgencyTriggers = history.stream().filter(Evaluation::isOfferUrgency).count();
+    long avoidedPurchases =
+        history.stream()
+            .filter(evaluation -> evaluation.getDecision() == Enums.PurchaseDecision.AVOIDED)
+            .count();
     String mainTrigger =
         advertisementTriggers >= urgencyTriggers && advertisementTriggers > 0
             ? "advertising"
             : urgencyTriggers > 0 ? "limited-time urgency" : "unplanned browsing";
 
-    if (question.toLowerCase().matches(".*(buy|purchase|worth|should).*")) {
+    if (normalizedQuestion.matches(".*(buy|purchase|worth|should).*")) {
       return "Before deciding, try the replacement test: if this item disappeared today, what "
-          + "existing item or cheaper option would solve the same need? Your recent average "
-          + "impulse score is "
+          + "existing item or cheaper option would solve the same need? Your relevant purchase "
+          + "history has an average impulse score of "
           + Math.round(averageScore)
-          + ", and your strongest visible trigger is "
+          + ", and the strongest visible trigger is "
           + mainTrigger
-          + ". Give this decision at least 24 hours, then reassess the need—not the deal.";
+          + ". Give the decision at least 24 hours, then reassess the need—not the deal.";
+    }
+
+    if (normalizedQuestion.contains("trigger") || normalizedQuestion.contains("pattern")) {
+      return "Your strongest visible pattern is "
+          + mainTrigger
+          + ". Across the retrieved records, you avoided "
+          + avoidedPurchases
+          + " purchase(s). Reduce exposure to that trigger and move uncertain items to the "
+          + "cooling-off list before deciding.";
     }
 
     return "Your recent reflections suggest that "
         + mainTrigger
-        + " deserves the most attention. Turn off promotional notifications, keep uncertain "
-        + "items in the cooling-off list, and revisit them only after the timer ends. Ask me "
-        + "about a specific product for a more focused reflection.";
+        + " deserves the most attention. The relevant records have an average impulse score of "
+        + Math.round(averageScore)
+        + ". Turn off promotional notifications, keep uncertain items in the cooling-off list, "
+        + "and revisit them only after the timer ends.";
   }
 }

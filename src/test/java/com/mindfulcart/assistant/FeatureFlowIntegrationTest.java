@@ -53,6 +53,14 @@ class FeatureFlowIntegrationTest {
   }
 
   @Test
+  void healthCheckIsPublicAndVerifiesDatabase() throws Exception {
+    mvc.perform(get("/api/health"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.status").value("UP"))
+        .andExpect(jsonPath("$.database").value("UP"));
+  }
+
+  @Test
   void budgetGoalDecisionAndReassessmentWorkTogether() throws Exception {
     mvc.perform(
             put("/api/budget")

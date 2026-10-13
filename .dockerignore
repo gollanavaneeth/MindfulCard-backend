@@ -1,0 +1,11 @@
+.git
+.gitignore
+.idea
+.vscode
+target
+*.log
+hs_err_pid*.log
+.env
+.env.*
+README.md
+RENDER_DEPLOYMENT.md

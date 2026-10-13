@@ -1,6 +1,7 @@
 package com.mindfulcart.assistant.config;
 
 import com.mindfulcart.assistant.security.JwtFilter;
+import java.util.Arrays;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,8 +21,8 @@ import org.springframework.web.cors.*;
 public class SecurityConfig {
   private final JwtFilter jwtFilter;
 
-  @Value("${app.cors.allowed-origin}")
-  private String allowedOrigin;
+  @Value("${app.cors.allowed-origins}")
+  private String allowedOrigins;
 
   @Bean
   SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -32,7 +33,7 @@ public class SecurityConfig {
         .authorizeHttpRequests(
             requests ->
                 requests
-                    .requestMatchers("/api/auth/**", "/error")
+                    .requestMatchers("/api/auth/**", "/api/health", "/error")
                     .permitAll()
                     .requestMatchers("/api/admin/**")
                     .hasRole("ADMIN")
@@ -56,9 +57,15 @@ public class SecurityConfig {
   @Bean
   CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration configuration = new CorsConfiguration();
-    configuration.setAllowedOrigins(List.of(allowedOrigin));
+    List<String> origins =
+        Arrays.stream(allowedOrigins.split(","))
+            .map(String::trim)
+            .filter(origin -> !origin.isBlank())
+            .toList();
+    configuration.setAllowedOrigins(origins);
     configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
     configuration.setAllowedHeaders(List.of("*"));
+    configuration.setMaxAge(3600L);
 
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", configuration);

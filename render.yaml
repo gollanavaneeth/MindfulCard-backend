@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: anti-impulse-backend
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    maxShutdownDelaySeconds: 30
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: DB_HOST
+        value: mysql-36e1599e-gollanavaneeth-0545.d.aivencloud.com
+      - key: DB_PORT
+        value: "21271"
+      - key: DB_NAME
+        value: nava
+      - key: DB_USERNAME
+        value: avnadmin
+      - key: DB_PASSWORD
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JAVA_TOOL_OPTIONS
+        value: -XX:MaxRAMPercentage=75.0 -XX:+UseSerialGC -Dfile.encoding=UTF-8

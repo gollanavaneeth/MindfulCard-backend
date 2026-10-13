@@ -59,7 +59,8 @@ public class OcrService {
       throw new IllegalStateException("OCR was interrupted. Please try again.", interrupted);
     } catch (UnsatisfiedLinkError failure) {
       throw new IllegalStateException(
-          "OCR could not start. On Windows, install the Microsoft Visual C++ 2015-2022 Redistributable and restart the backend.",
+          "OCR could not start because its native Tesseract runtime is unavailable. "
+              + "Install Tesseract 5, or the Microsoft Visual C++ 2015-2022 Redistributable on Windows, and restart the backend.",
           failure);
     } catch (TesseractException failure) {
       throw new IllegalArgumentException(

@@ -35,7 +35,7 @@ Default development configuration:
 
 | Setting | Default |
 |---|---|
-| Database | `anti_impulse_assistant` |
+| Database | `nava` |
 | Host | `localhost:3306` |
 | Username | `root` |
 | Password | `password` |
@@ -52,7 +52,7 @@ $env:DB_PASSWORD = "your-mysql-password"
 You can also override the complete connection URL:
 
 ```powershell
-$env:DB_URL = "jdbc:mysql://localhost:3306/anti_impulse_assistant?useSSL=false&serverTimezone=Asia/Kolkata"
+$env:DB_URL = "jdbc:mysql://localhost:3306/nava?useSSL=false&serverTimezone=Asia/Kolkata"
 ```
 
 ## Run the backend
@@ -75,13 +75,14 @@ The React development frontend is allowed from `http://localhost:3000` by defaul
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `DB_URL` | MySQL JDBC connection | Local `anti_impulse_assistant` database |
+| `DB_URL` | Optional complete MySQL JDBC connection | Local `nava` database |
+| `DB_HOST` | Production MySQL host | Required by the `prod` profile |
+| `DB_PORT` | Production MySQL port | `3306` |
+| `DB_NAME` | Production database name | `nava` |
 | `DB_USERNAME` | MySQL username | `root` |
 | `DB_PASSWORD` | MySQL password | `password` |
 | `JWT_SECRET` | Key used to sign JWTs | Development-only key |
 | `FRONTEND_URL` | Allowed CORS origin | `http://localhost:3000` |
-| `OPENAI_API_KEY` | Enables generated advisor responses | Empty |
-| `OPENAI_MODEL` | AI model used by the advisor | `gpt-4.1-mini` |
 | `OCR_LANGUAGE` | Tesseract OCR language | `eng` |
 | `OCR_PAGE_SEGMENTATION_MODE` | Tesseract page layout mode | `6` |
 
@@ -147,9 +148,9 @@ The response includes checkout price, total ownership cost, cost per use, a six-
 
 ## Grounded advisor / RAG
 
-The advisor retrieves the authenticated user's recent purchase evaluations from MySQL, formats the relevant facts as context, and augments the generation prompt. If `OPENAI_API_KEY` is unavailable or the external request fails, it returns a deterministic local response.
+The advisor retrieves the authenticated user's recent purchase evaluations from MySQL and applies deterministic behavioral rules to the retrieved context. It makes no external network request and does not require external credentials.
 
-This is relational application-data RAG. It does not claim to use embeddings or a vector database.
+This is a local retrieval-augmented recommendation pipeline. It does not use a large language model, embeddings, or a vector database.
 
 ## OCR
 
@@ -181,6 +182,17 @@ mvn clean package
 
 The generated JAR is written to `target/`, which is intentionally excluded by `.gitignore`.
 
+## Deploy on Render
+
+The backend includes:
+
+- `Dockerfile` — multi-stage Java 17 production image
+- `render.yaml` — Render Blueprint with safe environment-variable placeholders
+- `application-prod.properties` — Aiven SSL, Render port, pooling, and production logging
+- `/api/health` — public database-backed Render health check
+
+Follow [RENDER_DEPLOYMENT.md](RENDER_DEPLOYMENT.md) for the complete deployment procedure. Database passwords and production secrets must be entered only in the Render dashboard.
+
 ## Important source folders
 
 ```text
@@ -202,7 +214,7 @@ src/test/java/
 
 ## Production notes
 
-- Never commit database passwords, API keys, or production JWT secrets.
+- Never commit database passwords or production JWT secrets.
 - Restrict `FRONTEND_URL` to the deployed frontend origin.
 - Use a dedicated MySQL user instead of the root account.
 - Replace the development JWT secret.
